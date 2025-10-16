@@ -31,10 +31,14 @@ const controllerAgentName = "global-accelerator-controller"
 type GlobalAcceleratorConfig struct {
 	Workers     int
 	ClusterName string
+    // When set, controller binds backends to this existing Global Accelerator
+    // instead of creating a new accelerator per resource.
+    ExistingAcceleratorArn string
 }
 
 type GlobalAcceleratorController struct {
-	clusterName   string
+    clusterName   string
+    existingAcceleratorArn string
 	kubeclient    kubernetes.Interface
 	serviceLister corelisters.ServiceLister
 	serviceSynced cache.InformerSynced
@@ -57,13 +61,14 @@ func NewGlobalAcceleratorController(kubeclient kubernetes.Interface, informerFac
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclient.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
-	controller := &GlobalAcceleratorController{
-		clusterName:  config.ClusterName,
-		kubeclient:   kubeclient,
-		recorder:     recorder,
-		serviceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-service"),
-		ingressQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-ingress"),
-	}
+    controller := &GlobalAcceleratorController{
+        clusterName:            config.ClusterName,
+        existingAcceleratorArn: config.ExistingAcceleratorArn,
+        kubeclient:             kubeclient,
+        recorder:               recorder,
+        serviceQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-service"),
+        ingressQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-ingress"),
+    }
 	{
 		f := informerFactory.Core().V1().Services()
 		controller.serviceLister = f.Lister()

@@ -113,7 +113,8 @@ func (a *AWS) EnsureGlobalAcceleratorForService(
 	ctx context.Context,
 	svc *corev1.Service,
 	lbIngress *corev1.LoadBalancerIngress,
-	clusterName, lbName, region string,
+    clusterName, lbName, region string,
+    existingAcceleratorArn string,
 ) (*string, bool, time.Duration, error) {
 	lb, err := a.GetLoadBalancer(ctx, lbName)
 	if err != nil {
@@ -129,7 +130,21 @@ func (a *AWS) EnsureGlobalAcceleratorForService(
 
 	klog.Infof("LoadBalancer is %s", *lb.LoadBalancerArn)
 
-	accelerators, err := a.ListGlobalAcceleratorByResource(ctx, clusterName, "service", svc.Namespace, svc.Name)
+    // If an existing accelerator is specified, bypass creation and use it
+    if existingAcceleratorArn != "" {
+        klog.Infof("Using existing Global Accelerator: %s", existingAcceleratorArn)
+        accelerator, err := a.getAccelerator(ctx, existingAcceleratorArn)
+        if err != nil {
+            return nil, false, 0, err
+        }
+        // Ensure listener and endpoint group are present and up-to-date
+        if err := a.updateGlobalAcceleratorForService(ctx, accelerator, lb, svc, region); err != nil {
+            return nil, false, 0, err
+        }
+        return accelerator.AcceleratorArn, false, 0, nil
+    }
+
+    accelerators, err := a.ListGlobalAcceleratorByResource(ctx, clusterName, "service", svc.Namespace, svc.Name)
 	if err != nil {
 		return nil, false, 0, err
 	}
@@ -161,7 +176,8 @@ func (a *AWS) EnsureGlobalAcceleratorForIngress(
 	ctx context.Context,
 	ingress *networkingv1.Ingress,
 	lbIngress *networkingv1.IngressLoadBalancerIngress,
-	clusterName, lbName, region string,
+    clusterName, lbName, region string,
+    existingAcceleratorArn string,
 ) (*string, bool, time.Duration, error) {
 	lb, err := a.GetLoadBalancer(ctx, lbName)
 	if err != nil {
@@ -180,7 +196,20 @@ func (a *AWS) EnsureGlobalAcceleratorForIngress(
 
 	klog.Infof("LoadBalancer is %s", *lb.LoadBalancerArn)
 
-	accelerators, err := a.ListGlobalAcceleratorByResource(ctx, clusterName, "ingress", ingress.Namespace, ingress.Name)
+    // If an existing accelerator is specified, bypass creation and use it
+    if existingAcceleratorArn != "" {
+        klog.Infof("Using existing Global Accelerator: %s", existingAcceleratorArn)
+        accelerator, err := a.getAccelerator(ctx, existingAcceleratorArn)
+        if err != nil {
+            return nil, false, 0, err
+        }
+        if err := a.updateGlobalAcceleratorForIngress(ctx, accelerator, lb, ingress, region); err != nil {
+            return nil, false, 0, err
+        }
+        return accelerator.AcceleratorArn, false, 0, nil
+    }
+
+    accelerators, err := a.ListGlobalAcceleratorByResource(ctx, clusterName, "ingress", ingress.Namespace, ingress.Name)
 	if err != nil {
 		return nil, false, 0, err
 	}

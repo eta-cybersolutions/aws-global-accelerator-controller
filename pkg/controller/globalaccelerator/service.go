@@ -103,7 +103,7 @@ func (c *GlobalAcceleratorController) processServiceCreateOrUpdate(ctx context.C
 				klog.Error(err)
 				return reconcile.Result{}, err
 			}
-			arn, created, retryAfter, err := cloud.EnsureGlobalAcceleratorForService(ctx, svc, &lbIngress, c.clusterName, name, region)
+            arn, created, retryAfter, err := cloud.EnsureGlobalAcceleratorForService(ctx, svc, &lbIngress, c.clusterName, name, region, c.existingAcceleratorArn)
 			if err != nil {
 				return reconcile.Result{}, err
 			}
