@@ -107,7 +107,7 @@ func (c *GlobalAcceleratorController) processIngressCreateOrUpdate(ctx context.C
 				klog.Error(err)
 				return reconcile.Result{}, err
 			}
-			arn, created, retryAfter, err := cloud.EnsureGlobalAcceleratorForIngress(ctx, ingress, &lbIngress, c.clusterName, name, region)
+            arn, created, retryAfter, err := cloud.EnsureGlobalAcceleratorForIngress(ctx, ingress, &lbIngress, c.clusterName, name, region, c.existingAcceleratorArn)
 			if err != nil {
 				return reconcile.Result{}, err
 			}

@@ -19,6 +19,7 @@ import (
 type options struct {
 	workers     int
 	clusterName string
+	existingAcceleratorArn string
 }
 
 func ControllerCmd() *cobra.Command {
@@ -31,6 +32,7 @@ func ControllerCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.IntVarP(&o.workers, "workers", "w", 1, "Concurrent workers number for controller.")
 	flags.StringVarP(&o.clusterName, "cluster-name", "c", "default", "Owner cluster name which is used in resource tags.")
+	flags.StringVar(&o.existingAcceleratorArn, "existing-accelerator-arn", "", "Use an existing Global Accelerator ARN. If set, the controller will bind backends to this accelerator and will not create a new one.")
 
 	cmd.PersistentFlags().String("kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	cmd.PersistentFlags().String("master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
@@ -60,6 +62,7 @@ func (o *options) run(cmd *cobra.Command, args []string) {
 		GlobalAccelerator: &globalaccelerator.GlobalAcceleratorConfig{
 			Workers:     o.workers,
 			ClusterName: o.clusterName,
+			ExistingAcceleratorArn: o.existingAcceleratorArn,
 		},
 		Route53: &route53.Route53Config{
 			Workers:     o.workers,
