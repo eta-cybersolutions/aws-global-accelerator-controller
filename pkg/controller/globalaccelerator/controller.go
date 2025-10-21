@@ -38,7 +38,6 @@ type GlobalAcceleratorConfig struct {
 
 type GlobalAcceleratorController struct {
     clusterName   string
-    existingAcceleratorArn string
 	kubeclient    kubernetes.Interface
 	serviceLister corelisters.ServiceLister
 	serviceSynced cache.InformerSynced
@@ -51,10 +50,6 @@ type GlobalAcceleratorController struct {
 	recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch
-// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
-
 func NewGlobalAcceleratorController(kubeclient kubernetes.Interface, informerFactory informers.SharedInformerFactory, config *GlobalAcceleratorConfig) *GlobalAcceleratorController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(klog.Infof)
@@ -62,12 +57,11 @@ func NewGlobalAcceleratorController(kubeclient kubernetes.Interface, informerFac
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
     controller := &GlobalAcceleratorController{
-        clusterName:            config.ClusterName,
-        existingAcceleratorArn: config.ExistingAcceleratorArn,
-        kubeclient:             kubeclient,
-        recorder:               recorder,
-        serviceQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-service"),
-        ingressQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-ingress"),
+        clusterName:  config.ClusterName,
+        kubeclient:   kubeclient,
+        recorder:     recorder,
+        serviceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-service"),
+        ingressQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), controllerAgentName+"-ingress"),
     }
 	{
 		f := informerFactory.Core().V1().Services()
