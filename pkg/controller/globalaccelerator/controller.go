@@ -31,6 +31,9 @@ const controllerAgentName = "global-accelerator-controller"
 type GlobalAcceleratorConfig struct {
 	Workers     int
 	ClusterName string
+    // When set, controller binds backends to this existing Global Accelerator
+    // instead of creating a new accelerator per resource.
+    ExistingAcceleratorArn string
 }
 
 type GlobalAcceleratorController struct {
